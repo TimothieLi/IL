@@ -76,6 +76,18 @@ def main():
     if 'page' not in st.session_state:
         st.session_state.page = 'form'
         
+    # 自動初始化資料庫 (針對雲端部署環境)
+    import os
+    data_path = os.path.join(os.path.dirname(__file__), 'data', 'market_data.csv')
+    if not os.path.exists(data_path):
+        with st.spinner("首次啟動：系統正在從雲端抓取並建立全市場歷史資料庫，約需 30 秒至 1 分鐘，請稍候..."):
+            try:
+                from scripts.update_market_data import update_data
+                update_data()
+                st.success("資料庫建立完成！請繼續使用系統。")
+            except Exception as e:
+                st.error(f"資料庫建立失敗: {e}")
+        
     # 使用 session_state 來保存狀態，避免每次互動重新計算
     if 'analyzer' not in st.session_state:
         st.session_state.analyzer = None

@@ -24,7 +24,7 @@
 1.  **`app.py` (UI 控制層)**：基於 Streamlit 的前端介面與雙頁面流程邏輯，整合客製化 CSS/JS。
 2.  **`modules/screener.py` (策略過濾層)**：負責從全市場資料庫中撈取符合策略條件的前 N 大標的。
 3.  **`modules/optimizer.py` (量化運算層)**：包含 MPT 模型，負責共變異數矩陣運算與權重最佳化。
-4.  **`scripts/update_market_data.py` (資料管線)**：獨立的資料爬蟲腳本，負責批次更新歷史價格。
+4.  **`scripts/update_market_data.py` (資料管線)**：獨立的資料爬蟲腳本，負責批次更新歷史價格。系統具備**雲端自我修復 (Self-Healing) 機制**，在 Live Demo 環境首次啟動時，會自動偵測並觸發此腳本抓取資料，解決 `.gitignore` 阻擋大型 CSV 檔上傳的問題。
 
 ## 🚀 快速開始
 
