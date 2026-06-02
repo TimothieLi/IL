@@ -1,6 +1,8 @@
 # 理財決策輔助系統 (Financial Decision Support System)
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://streamlit.io/)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://hellotim.streamlit.app)
+
+👉 **Live Demo 線上體驗**：[https://hellotim.streamlit.app](https://hellotim.streamlit.app)
 
 > **專案定位**：本專案定位為個人理財決策輔助系統，核心目標是協助使用者理解自身財務狀況，並透過客觀的數據運算與量化模型，提供符合其風險承受度的投資組合建議。
 
