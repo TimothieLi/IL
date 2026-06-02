@@ -97,7 +97,7 @@ def main():
             
         st.markdown("<br>", unsafe_allow_html=True)
         # 送出按鈕
-        submitted = st.button("開始分析", use_container_width=True)
+        submitted = st.form_submit_button("開始分析", use_container_width=True)
 
     # 點擊分析按鈕後切換到結果頁面
     if submitted:
