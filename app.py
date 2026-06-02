@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 
 from modules.analyzer import FinancialProfileAnalyzer
@@ -28,13 +29,17 @@ def apply_custom_style():
         .main {
             background-color: #000000;
         }
-        /* Metric 卡片樣式 - 極簡無背景，微圓角，細灰框 */
+        /* Metric 卡片樣式 - 透明無背景與等高設定 */
         div[data-testid="stMetric"] {
             background-color: transparent;
             padding: 16px;
             border-radius: 6px;
             border: 1px solid #333333;
             box-shadow: none;
+            height: 125px; /* 固定高度讓所有卡片對齊 */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
         /* 側邊欄樣式 */
         div[data-testid="stSidebar"] {
@@ -67,86 +72,162 @@ def apply_custom_style():
 def main():
     apply_custom_style()
     
-    st.title("理財分析報告")
-    st.write("這是一個基於資料驅動的個人理財與資產配置建議系統。請在下方輸入您的財務概況，系統將為您生成客製化的報告。")
-    
+    # 頁面路由狀態初始化
+    if 'page' not in st.session_state:
+        st.session_state.page = 'form'
+        
     # 使用 session_state 來保存狀態，避免每次互動重新計算
     if 'analyzer' not in st.session_state:
         st.session_state.analyzer = None
-        
-    with st.form("financial_form"):
-        st.markdown("### 基本財務資料")
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            income = st.number_input("每月固定收入 (稅後)", min_value=0, value=50000, step=1000)
-            savings = st.number_input("目前可動用存款總額", min_value=0, value=150000, step=10000)
-        with col2:
-            fixed_expenses = st.number_input("每月固定支出 (房租/貸款/保險等)", min_value=0, value=20000, step=1000)
-            debt = st.number_input("目前負債總額", min_value=0, value=50000, step=10000)
-        with col3:
-            variable_expenses = st.number_input("每月變動支出 (餐飲/娛樂/購物等)", min_value=0, value=15000, step=1000)
-            investable = st.number_input("每月可投資金額", min_value=0, value=10000, step=1000)
-            
-        st.markdown("---")
-        st.markdown("### 理財規劃")
-        col4, col5 = st.columns(2)
-        with col4:
-            goal = st.selectbox("主要理財目標", ["建立緊急預備金", "長期資產成長", "買房準備", "退休規劃", "教育基金"])
-        with col5:
-            goal_years = st.selectbox("投資期限", ["1 年內", "3 年", "5 年", "10 年以上"], index=2)
-            
-        st.markdown("<br>", unsafe_allow_html=True)
-        # 送出按鈕
-        submitted = st.form_submit_button("開始分析", use_container_width=True)
 
-    # 點擊分析按鈕後切換到結果頁面
-    if submitted:
-        analyzer = FinancialProfileAnalyzer(
-            income, fixed_expenses, variable_expenses, savings, debt, investable, goal_years
-        )
-        st.session_state.analyzer = analyzer
+    if st.session_state.page == 'form':
+        st.markdown("<h1 style='text-align: center;'>個人理財決策輔助系統</h1>", unsafe_allow_html=True)
         
-        with st.spinner("正在從全市場資料庫執行第一層量化選股，並進行最佳化演算法訓練..."):
-            from modules.screener import MarketScreener
-            screener = MarketScreener()
+        # 注入 JavaScript 攔截 Enter 鍵，並執行格式檢查與恢復預設值
+        components.html(
+            """
+            <script>
+            const doc = window.parent.document;
             
-            # 根據用戶理財屬性決定選股策略
-            if analyzer.profile_type in ["優先儲蓄型", "債務整理型", "消費控管型", "保守型", "穩健理財型", "穩健型"]:
-                screen_strategy = "low_volatility"
-            else:
-                screen_strategy = "momentum"
+            // 定義各欄位的預設值對照表
+            const defaultValues = {
+                "每月固定收入": 50000,
+                "目前可動用存款總額": 150000,
+                "每月固定支出": 20000,
+                "目前負債總額": 50000,
+                "每月變動支出": 15000,
+                "每月可投資金額": 10000
+            };
+
+            doc.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    const activeElement = doc.activeElement;
+                    if (activeElement && activeElement.tagName === 'INPUT' && activeElement.type === 'number') {
+                        // 阻止預設的表單送出行為
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        const val = parseFloat(activeElement.value);
+                        
+                        // 判斷是否為無效輸入 (非數字或負數)
+                        if (isNaN(val) || val < 0) {
+                            // 尋找此 input 的 Label 名稱以對應預設值
+                            let labelText = "";
+                            const container = activeElement.closest('div[data-testid="stNumberInput"]');
+                            if (container) {
+                                const labelNode = container.querySelector('label');
+                                if (labelNode) {
+                                    labelText = labelNode.innerText;
+                                }
+                            }
+                            
+                            let defVal = 0; // 找不到對應時預設為 0
+                            for (const key in defaultValues) {
+                                if (labelText.includes(key)) {
+                                    defVal = defaultValues[key];
+                                    break;
+                                }
+                            }
+                            
+                            // 透過 React 支援的方式強制更改 Input 的值
+                            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+                            nativeInputValueSetter.call(activeElement, defVal);
+                            const ev = new Event('input', { bubbles: true });
+                            activeElement.dispatchEvent(ev);
+                        }
+                        
+                        // 讓輸入框失去焦點，完成視覺上的更新
+                        activeElement.blur();
+                    }
+                }
+            }, true);
+            </script>
+            """,
+            height=0,
+            width=0,
+        )
+
+        with st.form("financial_form"):
+            st.markdown("### 基本財務資料")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                income = st.number_input("每月固定收入 (稅後)", min_value=0, value=50000, step=1000)
+                savings = st.number_input("目前可動用存款總額", min_value=0, value=150000, step=10000)
+            with col2:
+                fixed_expenses = st.number_input("每月固定支出 (房租/貸款/保險等)", min_value=0, value=20000, step=1000)
+                debt = st.number_input("目前負債總額", min_value=0, value=50000, step=10000)
+            with col3:
+                variable_expenses = st.number_input("每月變動支出 (餐飲/娛樂/購物等)", min_value=0, value=15000, step=1000)
+                investable = st.number_input("每月可投資金額", min_value=0, value=10000, step=1000)
                 
-            screen_top_n = 10
+            st.markdown("---")
+            st.markdown("### 理財規劃")
+            col4, col5 = st.columns(2)
+            with col4:
+                goal = st.selectbox("主要理財目標", ["建立緊急預備金", "長期資產成長", "買房準備", "退休規劃", "教育基金"])
+            with col5:
+                goal_years = st.selectbox("投資期限", ["1 年內", "3 年", "5 年", "10 年以上"], index=2)
+                
+            st.markdown("<br>", unsafe_allow_html=True)
+            # 送出按鈕
+            submitted = st.form_submit_button("開始分析", use_container_width=True)
+
+        # 點擊分析按鈕後處理邏輯
+        if submitted:
+            analyzer = FinancialProfileAnalyzer(
+                income, fixed_expenses, variable_expenses, savings, debt, investable, goal_years
+            )
+            st.session_state.analyzer = analyzer
             
-            try:
-                selected_tickers, df = screener.screen(top_n=screen_top_n, strategy=screen_strategy)
+            with st.spinner("正在從全市場資料庫執行第一層量化選股，並進行最佳化演算法訓練..."):
+                from modules.screener import MarketScreener
+                screener = MarketScreener()
                 
-                ds = DataService(df)
-                exp_ret, cov = ds.process_data()
-                st.session_state.data_df = ds.data
+                # 根據用戶理財屬性決定選股策略
+                if analyzer.profile_type in ["優先儲蓄型", "債務整理型", "消費控管型", "保守型", "穩健理財型", "穩健型"]:
+                    screen_strategy = "low_volatility"
+                else:
+                    screen_strategy = "momentum"
+                    
+                screen_top_n = 10
                 
-                optimizer = PortfolioOptimizer(exp_ret, cov)
-                weights = optimizer.optimize(analyzer.profile_type)
-            except Exception as e:
-                st.error(f"資料處理錯誤: {e}")
-                weights = {}
-                
-            # 每支最低不能低於 10%
-            filtered_weights = {k: v for k, v in weights.items() if v >= 0.10}
-            # 重新歸一化讓總和為 100%
-            total_w = sum(filtered_weights.values())
-            if total_w > 0:
-                st.session_state.opt_weights = {k: v / total_w for k, v in filtered_weights.items()}
-            else:
-                st.session_state.opt_weights = {}
-                
+                try:
+                    selected_tickers, df = screener.screen(top_n=screen_top_n, strategy=screen_strategy)
+                    
+                    ds = DataService(df)
+                    exp_ret, cov = ds.process_data()
+                    st.session_state.data_df = ds.data
+                    
+                    optimizer = PortfolioOptimizer(exp_ret, cov)
+                    weights = optimizer.optimize(analyzer.profile_type)
+                except Exception as e:
+                    st.error(f"資料處理錯誤: {e}")
+                    weights = {}
+                    
+                # 每支最低不能低於 10%
+                filtered_weights = {k: v for k, v in weights.items() if v >= 0.10}
+                # 重新歸一化讓總和為 100%
+                total_w = sum(filtered_weights.values())
+                if total_w > 0:
+                    st.session_state.opt_weights = {k: v / total_w for k, v in filtered_weights.items()}
+                else:
+                    st.session_state.opt_weights = {}
+            
+            # 完成分析後跳轉頁面
+            st.session_state.page = 'report'
+            st.rerun()
+
     # ==========================================
     # 呈現結果
     # ==========================================
-    if st.session_state.analyzer:
+    elif st.session_state.page == 'report' and st.session_state.analyzer:
         analyzer = st.session_state.analyzer
-        st.markdown("---")
         
+        st.title("理財報告分析")
+        if st.button("⬅️ 返回修改資料"):
+            st.session_state.page = 'form'
+            st.rerun()
+            
         tab1, tab2 = st.tabs(["收支總覽", "理財建議"])
         
         with tab1:
@@ -250,7 +331,7 @@ def main():
                         ann_return = ((price_series.iloc[-1] / price_series.iloc[0]) ** (1 / years) - 1) * 100 if years > 0 else 0
                         volatility = price_series.pct_change().std() * (252 ** 0.5) * 100
                         
-                        analysis_text = f"**配置理由：** 客觀數據顯示，本次配置的核心重倉標的 **{top_ticker}** (資金佔比 {top_weight:.1f}%) 在過去的歷史區間內，累積成長報酬達 **{total_return:.1f}%** (年化報酬約 {ann_return:.1f}%)，且其年化波動度為 {volatility:.1f}%。\\n\\n"
+                        analysis_text = f"**配置理由：** 客觀數據顯示，本次配置的核心重倉標的 **{top_ticker}** (資金佔比 {top_weight:.1f}%) 在過去的歷史區間內，累積成長報酬達 **{total_return:.1f}%** (年化報酬約 {ann_return:.1f}%)，且其年化波動度為 {volatility:.1f}%。\n\n"
                         analysis_text += f"系統演算法偵測到 **{top_ticker}** 的歷史走勢具備優異的表現，因此賦予最高權重。同時為了避免單一資產風險過高，系統自動挑選了其餘 {len(weights)-1} 檔標的與之搭配。透過資產間漲跌互補的特性，在維持獲利成長空間的同時，數學化地壓低整體組合的下跌風險。"
                     else:
                         analysis_text = f"**配置理由：** 客觀數據顯示，核心標的 **{top_ticker}** (資金佔比 {top_weight:.1f}%) 具備良好的風險報酬特徵。系統透過將其與其餘 {len(weights)-1} 檔標的進行搭配，利用資產間漲跌互補的特性來分散單一股價下跌的風險。"

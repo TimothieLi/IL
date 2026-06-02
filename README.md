@@ -1,24 +1,30 @@
-# 個人理財決策輔助系統 (Personal Financial Decision Support System) 📈
+# 理財決策輔助系統 (Financial Decision Support System)
 
-[![Python Version](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/)
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://streamlit.io/)
 
-這是一個基於 **Streamlit** 開發的專業級個人理財決策輔助工具。系統採用「自頂向下 (Top-Down)」的架構設計，整合了資料獲取、財務指標分析以及投資組合優化（馬可維茲模型）等核心功能。
+> **專案定位**：本專案定位為個人理財決策輔助系統，核心目標是協助使用者理解自身財務狀況，並透過客觀的數據運算與量化模型，提供符合其風險承受度的投資組合建議。
 
-## 🌟 核心功能
+這是一個基於 **Streamlit** 開發的專業級個人理財決策輔助工具。系統採用「漏斗式量化選股架構」，結合了離線市場資料庫、動態策略篩選器 (Screener) 以及現代投資組合理論 (MPT) 最佳化模型。
 
-*   **📊 市場數據概覽**：即時視覺化多檔股票的歷史走勢，並提供關鍵價格指標。
-*   **🩺 企業財務體檢**：利用雷達圖 (Radar Chart) 多維度分析企業獲利能力、償債能力與經營效率（如 ROE、流動比率等）。
-*   **⚖️ 投資組合優化**：基於**現代投資組合理論 (MPT)**，透過蒙地卡羅模擬找出效率前緣，提供最優夏普比率配置建議。
-*   **💎 現代化 UI/UX**：美觀的深色模式設計，具備互動式圖表與響應式佈局。
+## 🌟 核心特色與功能
 
-## 🏗️ 技術架構
+*   **🩺 財務健康體檢與雙頁面架構**：依據使用者的收支與資產負債狀況，精確運算出財務健康分數，並透過優雅的雙頁面切換機制，提供乾淨無干擾的輸入體驗。
+*   **📡 全市場量化選股 (Screener)**：
+    * 內建市場資料爬蟲腳本，可建立本地端歷史資料庫，解決即時連線的延遲與封鎖問題。
+    * 系統自動根據使用者的理財屬性，套用「動能策略」或「低波防禦策略」，從數十檔海選標的池中精煉出菁英標的。
+*   **🧠 MPT 演算法優化**：
+    * 採用 `scipy.optimize` 實作 SLSQP 演算法。
+    * 具備「自動風險分散」約束機制（任何入選標的權重不低於 10%），尋找最小化波動度或最大化夏普值的最佳權重。
+*   **📊 動態客觀解析**：系統會即時分析最高權重標的的歷史年化報酬與波動度，並產出完全基於客觀數據的配置理由說明。
+*   **🛡️ 智慧表單防呆機制**：內建原生 JavaScript 事件攔截器，自動阻擋非預期的 Enter 送出動作，並具備智慧型格式修正與預設值還原功能。
 
-系統分為以下四個層級：
-1.  **UI 介面層**：使用 Streamlit 構建前端。
-2.  **資料獲取層**：整合 `yfinance` 獲取全球市場數據。
-3.  **財務分析層**：計算關鍵財務比率與生成統計圖表。
-4.  **優化運算層**：執行馬可維茲模型與風險模擬。
+## 🏗️ 系統架構
+
+系統分為以下四個核心模組：
+1.  **`app.py` (UI 控制層)**：基於 Streamlit 的前端介面與雙頁面流程邏輯，整合客製化 CSS/JS。
+2.  **`modules/screener.py` (策略過濾層)**：負責從全市場資料庫中撈取符合策略條件的前 N 大標的。
+3.  **`modules/optimizer.py` (量化運算層)**：包含 MPT 模型，負責共變異數矩陣運算與權重最佳化。
+4.  **`scripts/update_market_data.py` (資料管線)**：獨立的資料爬蟲腳本，負責批次更新歷史價格。
 
 ## 🚀 快速開始
 
@@ -26,36 +32,18 @@
 *   Python 3.9+
 *   pip
 
-### 安裝步驟
+### 安裝依賴套件
+```bash
+pip install -r requirements.txt
+```
 
-1.  **複製專案**：
-    ```bash
-    git clone https://github.com/TimothieLi/IL.git
-    cd IL
-    ```
+### 初始化市場資料庫
+在啟動網頁前，請先執行一次資料更新腳本，建立本地端的全市場歷史數據：
+```bash
+python scripts/update_market_data.py
+```
 
-2.  **安裝依賴套件**：
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-3.  **啟動系統**：
-    ```bash
-    streamlit run app.py
-    ```
-
-## 🛠️ 開發藍圖 (Roadmap)
-
-- [x] 系統基礎骨架與 UI 佈局
-- [x] 財務指標雷達圖實作
-- [x] 蒙地卡羅模擬與效率前緣視覺化
-- [ ] 整合真實 `yfinance` 資料 API
-- [ ] 加入 AI 投資建議助手 (LLM Integration)
-- [ ] 支援 CSV/PDF 報表匯出
-
-## 📄 授權協議
-
-本專案採用 MIT 授權協議。
-
----
-*Developed with ❤️ by Timothy Li*
+### 啟動應用程式
+```bash
+streamlit run app.py
+```
